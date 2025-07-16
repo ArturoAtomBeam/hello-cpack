@@ -1,0 +1,52 @@
+name: Build & Test ARMhf DEB Package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-armhf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎️ Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Set up QEMU (ARM emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: 🛠️ Build and extract .deb package for ARMhf
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/arm/v7
+          outputs: type=local,dest=output
+          tags: hello-armhf
+
+      - name: 📦 Upload .deb as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hello-armhf-deb
+          path: output/build/*.deb
+
+      - name: 🔍 Test installed .deb inside arm32v7 container
+        run: |
+          DEB_FILE=$(find output/build -name '*.deb' | head -n 1)
+
+          echo "Installing and testing: $DEB_FILE"
+
+          docker run --rm --platform linux/arm/v7 -v $PWD/output:/mnt arm32v7/debian:bullseye sh -c "
+            apt-get update &&
+            apt-get install -y ./mnt/build/$(basename $DEB_FILE) || apt-get -f install -y &&
+            echo 'Running hello...' &&
+            /usr/bin/hello
+          "
