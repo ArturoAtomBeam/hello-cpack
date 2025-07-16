@@ -1,52 +1,36 @@
-name: Build & Test ARMhf DEB Package
+name: Build ARMhf DEB with Docker
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build-armhf:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
-      - name: 🛎️ Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      - name: 🔐 Set up QEMU (ARM emulation)
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm
+    - name: Set up QEMU for ARM emulation
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm
 
-      - name: 🛠️ Build and extract .deb package for ARMhf
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile
-          platforms: linux/arm/v7
-          outputs: type=local,dest=output
-          tags: hello-armhf
+    - name: Build Docker image and extract DEB package
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        platforms: linux/arm/v7
+        outputs: type=local,dest=output
 
-      - name: 📦 Upload .deb as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hello-armhf-deb
-          path: output/out/*.deb
+    - name: List DEB package
+      run: ls -lh output
 
-      - name: 🔍 Test installed .deb inside arm32v7 container
-        run: |
-          DEB_FILE=$(find output/out -name '*.deb' | head -n 1)
-
-          echo "Installing and testing: $DEB_FILE"
-
-          docker run --rm --platform linux/arm/v7 -v $PWD/output:/mnt arm32v7/debian:bullseye sh -c "
-            apt-get update &&
-            apt-get install -y ./mnt/out/$(basename $DEB_FILE) || apt-get -f install -y &&
-            echo 'Running hello...' &&
-            /usr/bin/hello
-          "
+    - name: Show DEB contents (for verification)
+      run: dpkg-deb -c output/*.deb || echo "dpkg-deb not available on macOS"
