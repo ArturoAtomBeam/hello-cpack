@@ -36,17 +36,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hello-armhf-deb
-          path: output/build/*.deb
+          path: output/out/*.deb
 
       - name: 🔍 Test installed .deb inside arm32v7 container
         run: |
-          DEB_FILE=$(find output/build -name '*.deb' | head -n 1)
+          DEB_FILE=$(find output/out -name '*.deb' | head -n 1)
 
           echo "Installing and testing: $DEB_FILE"
 
           docker run --rm --platform linux/arm/v7 -v $PWD/output:/mnt arm32v7/debian:bullseye sh -c "
             apt-get update &&
-            apt-get install -y ./mnt/build/$(basename $DEB_FILE) || apt-get -f install -y &&
+            apt-get install -y ./mnt/out/$(basename $DEB_FILE) || apt-get -f install -y &&
             echo 'Running hello...' &&
             /usr/bin/hello
           "
