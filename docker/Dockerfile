@@ -17,8 +17,7 @@ COPY . .
 RUN mkdir build && cd build && \
     cmake .. -DCMAKE_SYSTEM_PROCESSOR=armhf -DCMAKE_INSTALL_PREFIX=/usr && \
     cmake --build . && \
-    cpack -G DEB && \
-    mkdir -p /out && cp build/*.deb /out/
+    cpack -G DEB
 
 # Debug: Show what's in the deb package
 RUN dpkg-deb -c build/*.deb
