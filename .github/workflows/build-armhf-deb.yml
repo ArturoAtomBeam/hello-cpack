@@ -1,36 +1,36 @@
-name: Build ARMhf DEB with Docker
+name: Build and Run ARMhf Hello
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
 
 jobs:
-  build-armhf:
-    runs-on: macos-latest
+  build-and-run:
+    name: Build and Run on ARMhf (via Docker/QEMU)
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
 
-    - name: Set up QEMU for ARM emulation
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: arm
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build Docker image and extract DEB package
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./docker/Dockerfile
-        platforms: linux/arm/v7
-        outputs: type=local,dest=output
+      - name: Build ARMhf Docker image (DEB installed)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm/v7
+          file: docker/Dockerfile
+          outputs: type=docker
+          tags: hello-armhf:test
 
-    - name: List DEB package
-      run: ls -lh output
-
-    - name: Show DEB contents (for verification)
-      run: dpkg-deb -c output/*.deb || echo "dpkg-deb not available on macOS"
+      - name: Run container and test /usr/bin/hello
+        run: |
+          docker run --rm --platform linux/arm/v7 hello-armhf:test
